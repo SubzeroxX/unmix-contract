@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount, transfer, Transfer};
 use anchor_spl::associated_token::AssociatedToken;
 
-declare_id!("J6Qw3is6x9vvsuUG6BK4QFqhEuX7489H5thyEqfteAKg");
+declare_id!("EJJWDU26jjbCdY9LU1SkaKUttDw9DjMP9p7ACK4CGJ8z");
 
 #[program]
 pub mod un_mix {

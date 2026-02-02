@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-unmix = "CrBMthLXkbuE31sxgfZvayRbvpMDQm47okm9mdaqkTkW"
+unmix = "J6Qw3is6x9vvsuUG6BK4QFqhEuX7489H5thyEqfteAKg"
 
 [registry]
 url = "https://api.apr.dev"

@@ -1,8 +1,9 @@
 .anchor
 .DS_Store
-target
 **/*.rs.bk
 node_modules
 test-ledger
 .yarn
+target/*
 !target/types/
+!target/types/un_mix.ts

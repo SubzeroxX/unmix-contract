@@ -10,7 +10,7 @@ pub mod un_mix {
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         let authority_key = ctx.accounts.authority.key();
-
+        
         // Verify vault address
         require_keys_eq!(
             ctx.accounts.vault.key(),
@@ -26,7 +26,6 @@ pub mod un_mix {
         global.total_fund = 0;
         global.levels_enabled = [false; 6];
         global.total_per_level = [0; 6];
-
         Ok(())
     }
 
@@ -492,7 +491,7 @@ pub struct Global {
     pub usdc_mint: Pubkey,
     pub total_fund: u64,
     pub levels_enabled: [bool; 6],
-    pub total_per_level: [u64; 6],
+    pub total_per_level: [u64; 6]
 }
 
 impl Global {

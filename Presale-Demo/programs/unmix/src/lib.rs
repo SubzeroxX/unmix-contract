@@ -306,13 +306,35 @@ pub mod un_mix {
             )?;
         }
 
+        // Reset and close all UserFund PDAs passed as remaining_accounts
+        // Note: In the client/test, pass all UserFund accounts you want to reset/close as remaining_accounts with writable: true
+        // This allows resetting "all" by providing them explicitly (since dynamic iteration isn't possible in a single instruction)
+        for account_info in ctx.remaining_accounts.iter() {
+            // Verify it's owned by the program
+            require_keys_eq!(*account_info.owner, id(), ErrorCode::InvalidAccount);
+
+            // Verify size to ensure it's a UserFund account
+            require_eq!(account_info.data_len(), UserFund::LEN, ErrorCode::InvalidAccount);
+
+            // Close the account (reclaim lamports to caller)
+            let lamports = **account_info.lamports.borrow();
+            **account_info.lamports.borrow_mut() = 0;
+            **ctx.accounts.caller.lamports.borrow_mut() += lamports;
+
+            // Realloc to 0 bytes
+            account_info.resize(0)?;
+
+            // Assign ownership to SystemProgram (effectively deleting it)
+            account_info.assign(&System::id());
+        }
+
         // Optional: emit an event so it's visible on-chain
         emit!(DemoResetEvent {
             caller: ctx.accounts.caller.key(),
             timestamp: Clock::get()?.unix_timestamp,
         });
 
-        msg!("Demo state has been reset. This is for testing only!");
+        msg!("Demo state has been reset, including provided UserFund PDAs. This is for testing only!");
 
         Ok(())
     }
@@ -475,6 +497,8 @@ pub struct DemoReset<'info> {
     pub authority: UncheckedAccount<'info>,
 
     pub token_program: Program<'info, Token>,
+
+    pub system_program: Program<'info, System>,
 }
 
 // Optional event
@@ -570,4 +594,6 @@ pub enum ErrorCode {
     ArithmeticError,
     #[msg("Invalid mint decimals (must be <= 18)")]
     InvalidDecimals,
+    #[msg("Invalid account")]
+    InvalidAccount,
 }

@@ -193,75 +193,6 @@ pub mod un_mix {
 
         Ok(())
     }
-
-    pub fn demo_reset(ctx: Context<DemoReset>) -> Result<()> {
-        require_keys_eq!(ctx.accounts.caller.key(), ctx.accounts.global.admin, ErrorCode::Unauthorized);
-        require_keys_eq!(ctx.accounts.usdc_mint.key(), ctx.accounts.global.usdc_mint, ErrorCode::MintMismatch);
-
-        let global = &mut ctx.accounts.global;
-
-        // Reset global stats
-        global.total_fund = 0;
-        global.levels_enabled = [false; 6];
-        global.total_per_level = [0; 6];
-
-        // Note: We do NOT reset admin or usdc_mint — that would break the program
-        // If you really want to reset everything, you would need to close accounts etc.
-
-        // Optional: reset the vault balance to 0 by transferring everything back to admin
-        // (only do this if you're okay with admin getting all funds instantly)
-        let vault_amount = ctx.accounts.vault.amount;
-        if vault_amount > 0 {
-            let authority_seed = b"authority";
-            let binding = [authority_seed.as_ref(), &[ctx.bumps.authority]];
-            let seeds = &[&binding[..]];
-
-            transfer(
-                CpiContext::new_with_signer(
-                    ctx.accounts.token_program.to_account_info(),
-                    Transfer {
-                        from: ctx.accounts.vault.to_account_info(),
-                        to: ctx.accounts.caller_usdc.to_account_info(),
-                        authority: ctx.accounts.authority.to_account_info(),
-                    },
-                    seeds,
-                ),
-                vault_amount,
-            )?;
-        }
-
-        // Reset and close all UserFund PDAs passed as remaining_accounts
-        // Note: In the client/test, pass all UserFund accounts you want to reset/close as remaining_accounts with writable: true
-        // This allows resetting "all" by providing them explicitly (since dynamic iteration isn't possible in a single instruction)
-        for account_info in ctx.remaining_accounts.iter() {
-            // Verify it's owned by the program
-            require_keys_eq!(*account_info.owner, id(), ErrorCode::InvalidAccount);
-
-            // Verify size to ensure it's a UserFund account
-            require_eq!(account_info.data_len(), UserFund::LEN, ErrorCode::InvalidAccount);
-
-            // Close the account (reclaim lamports to caller)
-            let lamports = **account_info.lamports.borrow();
-            **account_info.lamports.borrow_mut() = 0;
-            **ctx.accounts.caller.lamports.borrow_mut() += lamports;
-
-            // Realloc to 0 bytes
-            account_info.resize(0)?;
-
-            // Assign ownership to SystemProgram (effectively deleting it)
-            account_info.assign(&System::id());
-        }
-
-        // Optional: emit an event so it's visible on-chain
-        emit!(DemoResetEvent {
-            caller: ctx.accounts.caller.key(),
-            timestamp: Clock::get()?.unix_timestamp,
-        });
-
-        msg!("Demo state has been reset, including provided UserFund PDAs. This is for testing only!");
-
-        Ok(())
-    }
 }
 
 #[derive(Accounts)]
@@ -383,53 +314,6 @@ pub struct Fund<'info> {
     pub authority: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct DemoReset<'info> {
-    #[account(mut)]
-    pub caller: Signer<'info>,  // who calls it (can be anyone or restricted to admin)
-
-    pub usdc_mint: Account<'info, Mint>,
-
-    #[account(
-        mut,
-        seeds = [b"global"],
-        bump,
-    )]
-    pub global: Account<'info, Global>,
-
-    #[account(
-        mut,
-        associated_token::mint = usdc_mint,
-        associated_token::authority = authority,
-    )]
-    pub vault: Account<'info, TokenAccount>,
-
-    #[account(
-        mut,
-        associated_token::mint = usdc_mint,
-        associated_token::authority = caller,   // send back to caller's ATA
-    )]
-    pub caller_usdc: Account<'info, TokenAccount>,  // renamed from admin_usdc for clarity
-
-    /// CHECK: PDA authority
-    #[account(
-        seeds = [b"authority"],
-        bump,
-    )]
-    pub authority: UncheckedAccount<'info>,
-
-    pub token_program: Program<'info, Token>,
-
-    pub system_program: Program<'info, System>,
-}
-
-// Optional event
-#[event]
-pub struct DemoResetEvent {
-    pub caller: Pubkey,
-    pub timestamp: i64,
 }
 
 #[account]

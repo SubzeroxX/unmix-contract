@@ -4,11 +4,21 @@ use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 
 declare_id!("AjpFJjuwbYwPjxtChUxdgVa8mmrSQ2zakkk1EmZJ4YkL");
 
+const WITHDRAW_AUTHORITY: Pubkey = pubkey!("47Bxttko5pewcjuwd4oTzFeJmHY2yfs4j4YFXx2d68vV"); // Replace with the actual hardcoded address for exclusive withdraw authority
+const USDC_MINT: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+// devnet: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+// mainnet: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
 #[program]
 pub mod un_mix {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+        require_keys_eq!(
+            ctx.accounts.usdc_mint.key(),
+            USDC_MINT,
+            ErrorCode::InvalidMint
+        );
+
         let authority_key = ctx.accounts.authority.key();
         
         // Verify vault address
@@ -36,14 +46,17 @@ pub mod un_mix {
             ErrorCode::Unauthorized
         );
         require!(level >= 1 && level <= 6, ErrorCode::InvalidLevel);
-        // reject already fully funded levels
         let l = level as usize - 1;
-        require!(
-            !(enabled
-                && ctx.accounts.global.total_per_level[l]
-                    >= LEVEL_TOTAL_FUNDS[l] * 10u64.pow(ctx.accounts.usdc_mint.decimals as u32)),
-            ErrorCode::ExceedsLevelTotal
-        );
+        if enabled {
+            let unit = 10u64.pow(ctx.accounts.usdc_mint.decimals as u32);
+            let max_total = LEVEL_TOTAL_FUNDS[l]
+                .checked_mul(unit)
+                .ok_or(ErrorCode::ArithmeticError)?;
+            require!(
+                ctx.accounts.global.total_per_level[l] < max_total,
+                ErrorCode::ExceedsLevelTotal
+            );
+        }
         let global = &mut ctx.accounts.global;
         global.levels_enabled[level as usize - 1] = enabled;
 
@@ -63,8 +76,8 @@ pub mod un_mix {
             ErrorCode::MintMismatch
         );
         require_keys_eq!(
-            ctx.accounts.admin.key(),
-            ctx.accounts.global.admin,
+            ctx.accounts.withdrawer.key(),
+            WITHDRAW_AUTHORITY,
             ErrorCode::Unauthorized
         );
 
@@ -80,7 +93,7 @@ pub mod un_mix {
                 ctx.accounts.token_program.to_account_info(),
                 Transfer {
                     from: ctx.accounts.vault.to_account_info(),
-                    to: ctx.accounts.admin_usdc.to_account_info(),
+                    to: ctx.accounts.withdrawer_usdc.to_account_info(),
                     authority: ctx.accounts.authority.to_account_info(),
                 },
                 seeds,
@@ -89,7 +102,7 @@ pub mod un_mix {
         )?;
 
         emit!(WithdrawnEvent {
-            admin: ctx.accounts.admin.key(),
+            withdrawer: ctx.accounts.withdrawer.key(),
             amount,
         });
 
@@ -111,14 +124,14 @@ pub mod un_mix {
         let decimals = ctx.accounts.usdc_mint.decimals;
         require!(decimals <= 18, ErrorCode::InvalidDecimals);
         let unit = 10u64.pow(decimals as u32);
-        let min_amount = 1 * unit;
+        let min_amount = 1u64.checked_mul(unit).ok_or(ErrorCode::ArithmeticError)?;
         require_gte!(amount, min_amount, ErrorCode::AmountTooSmall);
 
         let max_per_account = LEVEL_MAX_PER_ACCOUNT[l];
         let max_per_lamports = if max_per_account == u64::MAX {
             u64::MAX
         } else {
-            max_per_account * unit
+            max_per_account.checked_mul(unit).ok_or(ErrorCode::ArithmeticError)?
         };
 
         let user_fund = &mut ctx.accounts.user_fund;
@@ -127,14 +140,14 @@ pub mod un_mix {
 
         let user_per_level = user_fund.per_level[l];
         require!(
-            user_per_level + amount <= max_per_lamports,
+            user_per_level.checked_add(amount).ok_or(ErrorCode::ArithmeticError)? <= max_per_lamports,
             ErrorCode::ExceedsMaxPerAccount
         );
 
         let total_this_level = global.total_per_level[l];
-        let max_total_level = LEVEL_TOTAL_FUNDS[l] * unit;
+        let max_total_level = LEVEL_TOTAL_FUNDS[l].checked_mul(unit).ok_or(ErrorCode::ArithmeticError)?;
         require!(
-            total_this_level + amount <= max_total_level,
+            total_this_level.checked_add(amount).ok_or(ErrorCode::ArithmeticError)? <= max_total_level,
             ErrorCode::ExceedsLevelTotal
         );
 
@@ -152,7 +165,7 @@ pub mod un_mix {
         )?;
 
         // Close level if reached its max
-        if total_this_level + amount == max_total_level {
+        if total_this_level.checked_add(amount).unwrap() == max_total_level {
             global.levels_enabled[l] = false;
         }
 
@@ -181,98 +194,9 @@ pub mod un_mix {
         Ok(())
     }
 
-    // each user can refund their donate, gets in paramerter level to refund from
-    pub fn refund(ctx: Context<Fund>, level: u8, amount: u64) -> Result<()> {
-        // 1. Basic parameter validation (no dependencies)
-        require!(level >= 1 && level <= 6, ErrorCode::InvalidLevel);
-
-        // 2. Calculate level index early (needed for array access)
-        let l = level as usize - 1;
-
-        // 3. Load global early (needed for levels_enabled check and later stats)
-        let global = &mut ctx.accounts.global;
-
-        // 4. Check level is enabled (now safe)
-        require!(global.levels_enabled[l], ErrorCode::LevelNotEnabled);
-
-        // 5. Mint consistency check
-        require_keys_eq!(
-            ctx.accounts.usdc_mint.key(),
-            global.usdc_mint,
-            ErrorCode::MintMismatch
-        );
-
-        // 6. Load user_fund and verify ownership
-        let user_fund = &mut ctx.accounts.user_fund;
-        require_eq!(
-            user_fund.user,
-            ctx.accounts.user.key(),
-            ErrorCode::Unauthorized
-        );
-
-        // 7. Calculate min_amount (decimals-dependent)
-        let decimals = ctx.accounts.usdc_mint.decimals;
-        require!(decimals <= 18, ErrorCode::InvalidDecimals);
-        let unit = 10u64.pow(decimals as u32);
-        let min_amount = 1 * unit;
-
-        // 8. Now safe: enforce minimum amount
-        require_gte!(amount, min_amount, ErrorCode::AmountTooSmall);
-
-        // 9. User-level balance check
-        let user_per_level = user_fund.per_level[l];
-        require!(user_per_level >= amount, ErrorCode::InsufficientFunds);
-
-        // 10. Global level total check
-        let total_this_level = global.total_per_level[l];
-        require!(total_this_level >= amount, ErrorCode::InsufficientFunds);
-
-        // 11. Perform the token transfer back to user
-        let authority_seed = b"authority";
-        let binding = [authority_seed.as_ref(), &[ctx.bumps.authority]];
-        let seeds = &[&binding[..]];
-
-        transfer(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.vault.to_account_info(),
-                    to: ctx.accounts.user_usdc.to_account_info(),
-                    authority: ctx.accounts.authority.to_account_info(),
-                },
-                seeds,
-            ),
-            amount,
-        )?;
-
-        // 12. Update accounting (subtract)
-        global.total_fund = global
-            .total_fund
-            .checked_sub(amount)
-            .ok_or(ErrorCode::ArithmeticError)?;
-        global.total_per_level[l] = global.total_per_level[l]
-            .checked_sub(amount)
-            .ok_or(ErrorCode::ArithmeticError)?;
-        user_fund.total_funded = user_fund
-            .total_funded
-            .checked_sub(amount)
-            .ok_or(ErrorCode::ArithmeticError)?;
-        user_fund.per_level[l] = user_fund.per_level[l]
-            .checked_sub(amount)
-            .ok_or(ErrorCode::ArithmeticError)?;
-
-        // 13. Emit event
-        emit!(RefundedEvent {
-            user: ctx.accounts.user.key(),
-            level,
-            amount,
-        });
-
-        Ok(())
-    }
-
     pub fn demo_reset(ctx: Context<DemoReset>) -> Result<()> {
         require_keys_eq!(ctx.accounts.caller.key(), ctx.accounts.global.admin, ErrorCode::Unauthorized);
+        require_keys_eq!(ctx.accounts.usdc_mint.key(), ctx.accounts.global.usdc_mint, ErrorCode::MintMismatch);
 
         let global = &mut ctx.accounts.global;
 
@@ -297,7 +221,7 @@ pub mod un_mix {
                     ctx.accounts.token_program.to_account_info(),
                     Transfer {
                         from: ctx.accounts.vault.to_account_info(),
-                        to: ctx.accounts.admin_usdc.to_account_info(),
+                        to: ctx.accounts.caller_usdc.to_account_info(),
                         authority: ctx.accounts.authority.to_account_info(),
                     },
                     seeds,
@@ -306,13 +230,35 @@ pub mod un_mix {
             )?;
         }
 
+        // Reset and close all UserFund PDAs passed as remaining_accounts
+        // Note: In the client/test, pass all UserFund accounts you want to reset/close as remaining_accounts with writable: true
+        // This allows resetting "all" by providing them explicitly (since dynamic iteration isn't possible in a single instruction)
+        for account_info in ctx.remaining_accounts.iter() {
+            // Verify it's owned by the program
+            require_keys_eq!(*account_info.owner, id(), ErrorCode::InvalidAccount);
+
+            // Verify size to ensure it's a UserFund account
+            require_eq!(account_info.data_len(), UserFund::LEN, ErrorCode::InvalidAccount);
+
+            // Close the account (reclaim lamports to caller)
+            let lamports = **account_info.lamports.borrow();
+            **account_info.lamports.borrow_mut() = 0;
+            **ctx.accounts.caller.lamports.borrow_mut() += lamports;
+
+            // Realloc to 0 bytes
+            account_info.resize(0)?;
+
+            // Assign ownership to SystemProgram (effectively deleting it)
+            account_info.assign(&System::id());
+        }
+
         // Optional: emit an event so it's visible on-chain
         emit!(DemoResetEvent {
             caller: ctx.accounts.caller.key(),
             timestamp: Clock::get()?.unix_timestamp,
         });
 
-        msg!("Demo state has been reset. This is for testing only!");
+        msg!("Demo state has been reset, including provided UserFund PDAs. This is for testing only!");
 
         Ok(())
     }
@@ -362,6 +308,7 @@ pub struct EnableLevel<'info> {
         mut,
         seeds = [b"global"],
         bump,
+        constraint = global.usdc_mint == usdc_mint.key() @ ErrorCode::MintMismatch
     )]
     pub global: Account<'info, Global>,
     pub usdc_mint: Account<'info, Mint>,
@@ -369,9 +316,8 @@ pub struct EnableLevel<'info> {
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
-    pub admin: Signer<'info>,
+    pub withdrawer: Signer<'info>,
     #[account(
-        mut,
         seeds = [b"global"],
         bump,
     )]
@@ -386,9 +332,9 @@ pub struct Withdraw<'info> {
     #[account(
         mut,
         associated_token::mint = usdc_mint,
-        associated_token::authority = admin,
+        associated_token::authority = withdrawer,
     )]
-    pub admin_usdc: Account<'info, TokenAccount>,
+    pub withdrawer_usdc: Account<'info, TokenAccount>,
     /// CHECK: PDA authority derived from known seeds, safe to use for token transfers
     #[account(
         seeds = [b"authority"],
@@ -465,7 +411,7 @@ pub struct DemoReset<'info> {
         associated_token::mint = usdc_mint,
         associated_token::authority = caller,   // send back to caller's ATA
     )]
-    pub admin_usdc: Account<'info, TokenAccount>,  // renamed from admin_usdc for clarity
+    pub caller_usdc: Account<'info, TokenAccount>,  // renamed from admin_usdc for clarity
 
     /// CHECK: PDA authority
     #[account(
@@ -475,6 +421,8 @@ pub struct DemoReset<'info> {
     pub authority: UncheckedAccount<'info>,
 
     pub token_program: Program<'info, Token>,
+
+    pub system_program: Program<'info, System>,
 }
 
 // Optional event
@@ -529,15 +477,8 @@ pub struct FundedEvent {
 }
 
 #[event]
-pub struct RefundedEvent {
-    pub user: Pubkey,
-    pub level: u8,
-    pub amount: u64,
-}
-
-#[event]
 pub struct WithdrawnEvent {
-    pub admin: Pubkey,
+    pub withdrawer: Pubkey,
     pub amount: u64,
 }
 
@@ -552,7 +493,7 @@ pub struct LevelUpdatedEvent {
 pub enum ErrorCode {
     #[msg("Invalid level.")]
     InvalidLevel,
-    #[msg("Insuffitient funds")]
+    #[msg("Insufficient funds")]
     InsufficientFunds,
     #[msg("Level not enabled.")]
     LevelNotEnabled,
@@ -570,4 +511,8 @@ pub enum ErrorCode {
     ArithmeticError,
     #[msg("Invalid mint decimals (must be <= 18)")]
     InvalidDecimals,
+    #[msg("Invalid account")]
+    InvalidAccount,
+    #[msg("Invalid mint")]
+    InvalidMint,
 }

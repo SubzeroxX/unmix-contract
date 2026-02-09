@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/un_mix.json`.
  */
 export type UnMix = {
-  "address": "CbPxrLPpxo6Mp25XcDpbFwqkguFZetbuR6oWrNfscFSw",
+  "address": "AjpFJjuwbYwPjxtChUxdgVa8mmrSQ2zakkk1EmZJ4YkL",
   "metadata": {
     "name": "unMix",
     "version": "0.1.0",
@@ -48,6 +48,12 @@ export type UnMix = {
               }
             ]
           }
+        },
+        {
+          "name": "usdcMint"
+        },
+        {
+          "name": "usdtMint"
         }
       ],
       "args": [
@@ -125,100 +131,17 @@ export type UnMix = {
           }
         },
         {
-          "name": "mint"
+          "name": "usdcMint"
         },
         {
-          "name": "userTokenAccount",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "user"
-              },
-              {
-                "kind": "const",
-                "value": [
-                  6,
-                  221,
-                  246,
-                  225,
-                  215,
-                  101,
-                  161,
-                  147,
-                  217,
-                  203,
-                  225,
-                  70,
-                  206,
-                  235,
-                  121,
-                  172,
-                  28,
-                  180,
-                  133,
-                  237,
-                  95,
-                  91,
-                  55,
-                  145,
-                  58,
-                  140,
-                  245,
-                  133,
-                  126,
-                  255,
-                  0,
-                  169
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "mint"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            }
-          }
+          "name": "usdtMint"
         },
         {
-          "name": "vault",
+          "name": "userToken",
+          "writable": true
+        },
+        {
+          "name": "usdcVault",
           "writable": true,
           "pda": {
             "seeds": [
@@ -265,7 +188,97 @@ export type UnMix = {
               },
               {
                 "kind": "account",
-                "path": "mint"
+                "path": "usdcMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "usdtVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "authority"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "usdtMint"
               }
             ],
             "program": {
@@ -309,6 +322,9 @@ export type UnMix = {
         },
         {
           "name": "authority",
+          "docs": [
+            "derivation enforced, no data access"
+          ],
           "pda": {
             "seeds": [
               {
@@ -339,6 +355,14 @@ export type UnMix = {
       ],
       "args": [
         {
+          "name": "tokenType",
+          "type": {
+            "defined": {
+              "name": "tokenType"
+            }
+          }
+        },
+        {
           "name": "level",
           "type": "u8"
         },
@@ -350,11 +374,6 @@ export type UnMix = {
     },
     {
       "name": "initialize",
-      "docs": [
-        "Initializes global state or registers one of the two supported mints (USDC or USDT).",
-        "Must be called **twice**: once for USDC and once for USDT.",
-        "The first call sets the admin authority."
-      ],
       "discriminator": [
         175,
         175,
@@ -372,7 +391,10 @@ export type UnMix = {
           "signer": true
         },
         {
-          "name": "mint"
+          "name": "usdcMint"
+        },
+        {
+          "name": "usdtMint"
         },
         {
           "name": "global",
@@ -395,6 +417,9 @@ export type UnMix = {
         },
         {
           "name": "authority",
+          "docs": [
+            "no data is read/written, seeds + bump are enforced by constraint"
+          ],
           "pda": {
             "seeds": [
               {
@@ -415,7 +440,7 @@ export type UnMix = {
           }
         },
         {
-          "name": "vault",
+          "name": "usdcVault",
           "writable": true,
           "pda": {
             "seeds": [
@@ -462,7 +487,97 @@ export type UnMix = {
               },
               {
                 "kind": "account",
-                "path": "mint"
+                "path": "usdcMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "usdtVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "authority"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "usdtMint"
               }
             ],
             "program": {
@@ -555,10 +670,13 @@ export type UnMix = {
           }
         },
         {
-          "name": "mint"
+          "name": "usdcMint"
         },
         {
-          "name": "vault",
+          "name": "usdtMint"
+        },
+        {
+          "name": "usdcVault",
           "writable": true,
           "pda": {
             "seeds": [
@@ -605,7 +723,7 @@ export type UnMix = {
               },
               {
                 "kind": "account",
-                "path": "mint"
+                "path": "usdcMint"
               }
             ],
             "program": {
@@ -648,13 +766,13 @@ export type UnMix = {
           }
         },
         {
-          "name": "withdrawerTokenAccount",
+          "name": "usdtVault",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "account",
-                "path": "withdrawer"
+                "path": "authority"
               },
               {
                 "kind": "const",
@@ -695,7 +813,7 @@ export type UnMix = {
               },
               {
                 "kind": "account",
-                "path": "mint"
+                "path": "usdtMint"
               }
             ],
             "program": {
@@ -738,6 +856,10 @@ export type UnMix = {
           }
         },
         {
+          "name": "withdrawerToken",
+          "writable": true
+        },
+        {
           "name": "authority",
           "pda": {
             "seeds": [
@@ -764,6 +886,14 @@ export type UnMix = {
         }
       ],
       "args": [
+        {
+          "name": "tokenType",
+          "type": {
+            "defined": {
+              "name": "tokenType"
+            }
+          }
+        },
         {
           "name": "amount",
           "type": "u64"
@@ -814,19 +944,6 @@ export type UnMix = {
       ]
     },
     {
-      "name": "initializedEvent",
-      "discriminator": [
-        136,
-        202,
-        63,
-        120,
-        152,
-        146,
-        41,
-        79
-      ]
-    },
-    {
       "name": "levelUpdatedEvent",
       "discriminator": [
         185,
@@ -857,67 +974,62 @@ export type UnMix = {
     {
       "code": 6000,
       "name": "invalidLevel",
-      "msg": "Invalid level (must be 1-6)"
+      "msg": "Invalid level."
     },
     {
       "code": 6001,
       "name": "insufficientFunds",
-      "msg": "Insufficient funds in vault"
+      "msg": "Insufficient funds"
     },
     {
       "code": 6002,
       "name": "levelNotEnabled",
-      "msg": "This level is not enabled"
+      "msg": "Level not enabled."
     },
     {
       "code": 6003,
       "name": "amountTooSmall",
-      "msg": "Amount must be greater than zero"
+      "msg": "Amount too small."
     },
     {
       "code": 6004,
       "name": "exceedsMaxPerAccount",
-      "msg": "Exceeds maximum allowed per account for this level"
+      "msg": "Exceeds max per account for level."
     },
     {
       "code": 6005,
       "name": "exceedsLevelTotal",
-      "msg": "Exceeds total allowed amount for this level"
+      "msg": "Exceeds total for level."
     },
     {
       "code": 6006,
-      "name": "invalidMint",
-      "msg": "Unsupported mint (only USDC or USDT allowed)"
+      "name": "mintMismatch",
+      "msg": "Mint mismatch."
     },
     {
       "code": 6007,
       "name": "unauthorized",
-      "msg": "Unauthorized caller"
+      "msg": "unauthorized"
     },
     {
       "code": 6008,
       "name": "arithmeticError",
-      "msg": "Arithmetic overflow/underflow"
+      "msg": "Arithmetic error (overflow/underflow)"
     },
     {
       "code": 6009,
       "name": "invalidDecimals",
-      "msg": "Token must have exactly 6 decimals"
+      "msg": "Invalid mint decimals (must be <= 18)"
     },
     {
       "code": 6010,
-      "name": "invalidVault",
-      "msg": "Invalid vault account"
+      "name": "invalidAccount",
+      "msg": "Invalid account"
     },
     {
       "code": 6011,
-      "name": "mintMismatch",
-      "msg": "Mint mismatch with vault"
-    },
-    {
-      "code": 6012,
-      "name": "mintAlreadySet",
-      "msg": "This mint has already been initialized"
+      "name": "invalidMint",
+      "msg": "Invalid mint"
     }
   ],
   "types": [
@@ -931,16 +1043,20 @@ export type UnMix = {
             "type": "pubkey"
           },
           {
+            "name": "tokenType",
+            "type": {
+              "defined": {
+                "name": "tokenType"
+              }
+            }
+          },
+          {
             "name": "level",
             "type": "u8"
           },
           {
             "name": "amount",
             "type": "u64"
-          },
-          {
-            "name": "mint",
-            "type": "pubkey"
           }
         ]
       }
@@ -963,15 +1079,15 @@ export type UnMix = {
             "type": "pubkey"
           },
           {
-            "name": "totalFund",
+            "name": "totalFundUsd",
             "type": "u64"
           },
           {
-            "name": "usdcVaultTotal",
+            "name": "totalFundUsdc",
             "type": "u64"
           },
           {
-            "name": "usdtVaultTotal",
+            "name": "totalFundUsdt",
             "type": "u64"
           },
           {
@@ -993,28 +1109,22 @@ export type UnMix = {
             }
           },
           {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "initializedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "admin",
-            "type": "pubkey"
+            "name": "totalPerLevelUsdc",
+            "type": {
+              "array": [
+                "u64",
+                6
+              ]
+            }
           },
           {
-            "name": "mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "vault",
-            "type": "pubkey"
+            "name": "totalPerLevelUsdt",
+            "type": {
+              "array": [
+                "u64",
+                6
+              ]
+            }
           }
         ]
       }
@@ -1040,6 +1150,20 @@ export type UnMix = {
       }
     },
     {
+      "name": "tokenType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "usdc"
+          },
+          {
+            "name": "usdt"
+          }
+        ]
+      }
+    },
+    {
       "name": "userFund",
       "type": {
         "kind": "struct",
@@ -1053,7 +1177,7 @@ export type UnMix = {
             "type": "u64"
           },
           {
-            "name": "perLevelUsdc",
+            "name": "perLevel",
             "type": {
               "array": [
                 "u64",
@@ -1062,7 +1186,16 @@ export type UnMix = {
             }
           },
           {
-            "name": "perLevelUsdt",
+            "name": "usdcPerLevel",
+            "type": {
+              "array": [
+                "u64",
+                6
+              ]
+            }
+          },
+          {
+            "name": "usdtPerLevel",
             "type": {
               "array": [
                 "u64",
@@ -1083,12 +1216,16 @@ export type UnMix = {
             "type": "pubkey"
           },
           {
-            "name": "amount",
-            "type": "u64"
+            "name": "tokenType",
+            "type": {
+              "defined": {
+                "name": "tokenType"
+              }
+            }
           },
           {
-            "name": "mint",
-            "type": "pubkey"
+            "name": "amount",
+            "type": "u64"
           }
         ]
       }

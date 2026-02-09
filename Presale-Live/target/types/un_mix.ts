@@ -345,15 +345,16 @@ export type UnMix = {
         {
           "name": "amount",
           "type": "u64"
-        },
-        {
-          "name": "mint",
-          "type": "pubkey"
         }
       ]
     },
     {
       "name": "initialize",
+      "docs": [
+        "Initializes global state or registers one of the two supported mints (USDC or USDT).",
+        "Must be called **twice**: once for USDC and once for USDT.",
+        "The first call sets the admin authority."
+      ],
       "discriminator": [
         175,
         175,
@@ -766,10 +767,6 @@ export type UnMix = {
         {
           "name": "amount",
           "type": "u64"
-        },
-        {
-          "name": "mint",
-          "type": "pubkey"
         }
       ]
     }
@@ -860,7 +857,7 @@ export type UnMix = {
     {
       "code": 6000,
       "name": "invalidLevel",
-      "msg": "Invalid level"
+      "msg": "Invalid level (must be 1-6)"
     },
     {
       "code": 6001,
@@ -870,32 +867,32 @@ export type UnMix = {
     {
       "code": 6002,
       "name": "levelNotEnabled",
-      "msg": "Level is not enabled"
+      "msg": "This level is not enabled"
     },
     {
       "code": 6003,
       "name": "amountTooSmall",
-      "msg": "Amount too small"
+      "msg": "Amount must be greater than zero"
     },
     {
       "code": 6004,
       "name": "exceedsMaxPerAccount",
-      "msg": "Exceeds max per account for this level"
+      "msg": "Exceeds maximum allowed per account for this level"
     },
     {
       "code": 6005,
       "name": "exceedsLevelTotal",
-      "msg": "Exceeds total allowed for this level"
+      "msg": "Exceeds total allowed amount for this level"
     },
     {
       "code": 6006,
       "name": "invalidMint",
-      "msg": "Mint not supported"
+      "msg": "Unsupported mint (only USDC or USDT allowed)"
     },
     {
       "code": 6007,
       "name": "unauthorized",
-      "msg": "unauthorized"
+      "msg": "Unauthorized caller"
     },
     {
       "code": 6008,
@@ -905,7 +902,7 @@ export type UnMix = {
     {
       "code": 6009,
       "name": "invalidDecimals",
-      "msg": "Invalid mint decimals (>18)"
+      "msg": "Token must have exactly 6 decimals"
     },
     {
       "code": 6010,
@@ -915,12 +912,12 @@ export type UnMix = {
     {
       "code": 6011,
       "name": "mintMismatch",
-      "msg": "Mint mismatch"
+      "msg": "Mint mismatch with vault"
     },
     {
       "code": 6012,
       "name": "mintAlreadySet",
-      "msg": "Mint already initialized"
+      "msg": "This mint has already been initialized"
     }
   ],
   "types": [

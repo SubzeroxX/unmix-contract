@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/un_mix.json`.
  */
 export type UnMix = {
-  "address": "AjpFJjuwbYwPjxtChUxdgVa8mmrSQ2zakkk1EmZJ4YkL",
+  "address": "AkxithguMWHSuaufEQEyRgs91kpA2vaaWSWAU91nfJvu",
   "metadata": {
     "name": "unMix",
     "version": "0.1.0",

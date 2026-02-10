@@ -2,11 +2,17 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer}; // ← add this back
 
-declare_id!("AjpFJjuwbYwPjxtChUxdgVa8mmrSQ2zakkk1EmZJ4YkL");
+declare_id!("AkxithguMWHSuaufEQEyRgs91kpA2vaaWSWAU91nfJvu");
 
-const WITHDRAW_AUTHORITY: Pubkey = pubkey!("47Bxttko5pewcjuwd4oTzFeJmHY2yfs4j4YFXx2d68vV");
-const USDC_MINT: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
-const USDT_MINT: Pubkey = pubkey!("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB");
+const WITHDRAW_AUTHORITY: Pubkey = pubkey!("BTfs792s9GzLTowWdtYiLskn5VsWZah1mVUuAUiwmLZx");
+// main: 47Bxttko5pewcjuwd4oTzFeJmHY2yfs4j4YFXx2d68vV
+// test: BTfs792s9GzLTowWdtYiLskn5VsWZah1mVUuAUiwmLZx
+const USDC_MINT: Pubkey = pubkey!("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
+// main: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+// dev:4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+const USDT_MINT: Pubkey = pubkey!("HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr");
+// main: Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB
+// dev (eurc): HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
 pub enum TokenType {

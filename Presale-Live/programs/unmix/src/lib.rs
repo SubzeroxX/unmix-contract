@@ -1,16 +1,16 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer}; // ← add this back
+use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 
 declare_id!("AkxithguMWHSuaufEQEyRgs91kpA2vaaWSWAU91nfJvu");
 
-const WITHDRAW_AUTHORITY: Pubkey = pubkey!("BTfs792s9GzLTowWdtYiLskn5VsWZah1mVUuAUiwmLZx");
+const WITHDRAW_AUTHORITY: Pubkey = pubkey!("47Bxttko5pewcjuwd4oTzFeJmHY2yfs4j4YFXx2d68vV");
 // main: 47Bxttko5pewcjuwd4oTzFeJmHY2yfs4j4YFXx2d68vV
 // test: BTfs792s9GzLTowWdtYiLskn5VsWZah1mVUuAUiwmLZx
-const USDC_MINT: Pubkey = pubkey!("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
+const USDC_MINT: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 // main: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
 // dev:4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
-const USDT_MINT: Pubkey = pubkey!("HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr");
+const USDT_MINT: Pubkey = pubkey!("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB");
 // main: Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB
 // dev (eurc): HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr
 
@@ -164,7 +164,6 @@ pub mod un_mix {
         Ok(())
     }
 
-    // fund function remains unchanged — it was already correct in the previous version
     pub fn fund(ctx: Context<Fund>, token_type: TokenType, level: u8, amount: u64) -> Result<()> {
         require!(level >= 1 && level <= 6, ErrorCode::InvalidLevel);
         let l = level as usize - 1;

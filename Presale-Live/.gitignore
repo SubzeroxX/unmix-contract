@@ -7,4 +7,6 @@ test-ledger
 target/*
 !target/types/
 !target/types/un_mix.ts
+!target/idl/
+!target/idl/un_mix.json
 docker-target
